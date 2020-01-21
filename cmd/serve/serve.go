@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // a comment justifying it
@@ -33,6 +32,14 @@ import (
 	"github.com/cilium/cilium/pkg/monitor/agent/listener"
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 	"github.com/cilium/cilium/pkg/monitor/payload"
+	"github.com/gogo/protobuf/types"
+	"github.com/google/gops/agent"
+	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+
 	pb "github.com/cilium/hubble/api/v1/flow"
 	"github.com/cilium/hubble/api/v1/observer"
 	"github.com/cilium/hubble/pkg/api"
@@ -45,13 +52,6 @@ import (
 	metricsAPI "github.com/cilium/hubble/pkg/metrics/api"
 	"github.com/cilium/hubble/pkg/parser"
 	"github.com/cilium/hubble/pkg/server"
-	"github.com/gogo/protobuf/types"
-	"github.com/google/gops/agent"
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 // New ...
@@ -288,30 +288,33 @@ func Serve(log *zap.Logger, listenClientUrls []string, s server.Observer) error 
 
 	setupSigHandler()
 	fmt.Printf("Press Ctrl-C to quit\n")
+	return nil
 
-	// On EOF, retry
-	// On other errors, exit
-	// always wait connTimeout when retrying
-	for ; ; time.Sleep(api.ConnectionTimeout) {
-		conn, version, err := openMonitorSock()
-		if err != nil {
-			log.Error("Cannot open monitor serverSocketPath", zap.Error(err))
-			return err
+	/*
+		// On EOF, retry
+		// On other errors, exit
+		// always wait connTimeout when retrying
+		for ; ; time.Sleep(api.ConnectionTimeout) {
+			conn, version, err := openMonitorSock()
+			if err != nil {
+				log.Error("Cannot open monitor serverSocketPath", zap.Error(err))
+				return err
+			}
+
+			err = consumeMonitorEvents(s, conn, version)
+			switch {
+			case err == nil:
+			// no-op
+
+			case err == io.EOF, err == io.ErrUnexpectedEOF:
+				log.Warn("connection closed", zap.Error(err))
+				continue
+
+			default:
+				log.Fatal("decoding error", zap.Error(err))
+			}
 		}
-
-		err = consumeMonitorEvents(s, conn, version)
-		switch {
-		case err == nil:
-		// no-op
-
-		case err == io.EOF, err == io.ErrUnexpectedEOF:
-			log.Warn("connection closed", zap.Error(err))
-			continue
-
-		default:
-			log.Fatal("decoding error", zap.Error(err))
-		}
-	}
+	*/
 }
 
 func setupSigHandler() {
