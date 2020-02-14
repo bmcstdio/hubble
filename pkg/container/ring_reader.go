@@ -39,20 +39,29 @@ func NewRingReader(ring *Ring, start uint64) *RingReader {
 }
 
 // Previous reads the event at the current position and decrement the read
-// position by one.
-func (r *RingReader) Previous(ctx context.Context) *v1.Event {
+// position by one. If no event was read, ok is false.
+func (r *RingReader) Previous() (event *v1.Event, ok bool) {
 	e, ok := r.ring.read(r.idx)
-	if e == nil || !ok {
-		return nil
+	if ok {
+		r.idx--
 	}
-	r.idx--
-	return e
+	return e, ok
 }
 
 // Next reads the event at the current position and increment the read position
-// by one. If there are no more event to read, Next blocks until the next event
-// is added to the ring or the context is cancelled.
-func (r *RingReader) Next(ctx context.Context) *v1.Event {
+// by one. If no event was read, ok is false.
+func (r *RingReader) Next() (event *v1.Event, ok bool) {
+	e, ok := r.ring.read(r.idx)
+	if ok {
+		r.idx++
+	}
+	return e, ok
+}
+
+// NextFollow reads the event at the current position and increment the read
+// position by one. If there are no more event to read, NextFollow blocks
+// until the next event is added to the ring or the context is cancelled.
+func (r *RingReader) NextFollow(ctx context.Context) *v1.Event {
 	if r.c == nil {
 		r.c = r.ring.readFrom(r.stop, r.idx)
 	}
